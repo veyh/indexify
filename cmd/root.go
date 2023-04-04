@@ -67,7 +67,7 @@ type DirectoryItem struct {
 var rootCmdRunner = RootCmdRunner{}
 var rootCmd = &cobra.Command{
   Use: "indexify <dir>",
-  Version: "1.0.0",
+  Version: "1.1.0",
   RunE: rootCmdRunner.Run,
   Args: cobra.ExactArgs(1),
 }
