@@ -28,6 +28,7 @@ type RootCmdRunner struct {
   includeHidden bool
   stdout bool
   indexName string
+  baseUrl string
 
   dirRelative string
   dirAbsolute string
@@ -107,6 +108,12 @@ func init() {
     &rootCmdRunner.indexName,
     "index-name", "", "index.html",
     "name of index file to generate",
+  )
+
+  rootCmd.Flags().StringVarP(
+    &rootCmdRunner.baseUrl,
+    "base-url", "", "",
+    "base url to use for links (if the files are hosted elsewhere)",
   )
 
   rootCmd.MarkFlagRequired("root")
@@ -210,7 +217,7 @@ func (runner *RootCmdRunner) fetchData() error {
     }
 
     item := DirectoryItem{
-      URL: name,
+      URL: filepath.Join(runner.baseUrl, name),
       IsDir: dirEntry.IsDir(),
       IsSymlink: info.Mode() & fs.ModeSymlink > 0,
       Name: dirEntry.Name(),

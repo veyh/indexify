@@ -9,6 +9,7 @@ Usage:
   indexify <dir> [flags]
 
 Flags:
+      --base-url string     base url to use for links (when the files are hosted elsewhere)
   -n, --dry-run             don't write anything to disk
   -h, --help                help for indexify
       --hidden              index hidden files
