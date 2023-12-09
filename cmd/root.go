@@ -25,6 +25,7 @@ var errTargetExistsAndIsNotGenerated = errors.New("target already exists and is 
 
 type RootCmdRunner struct {
   dryRun bool
+  recursive bool
   includeHidden bool
   stdout bool
   indexName string
@@ -99,6 +100,12 @@ func init() {
   )
 
   rootCmd.Flags().BoolVarP(
+    &rootCmdRunner.recursive,
+    "recursive", "r", false,
+    "process directories recursively",
+  )
+
+  rootCmd.Flags().BoolVarP(
     &rootCmdRunner.stdout,
     "stdout", "", false,
     "output to stdout only",
@@ -120,46 +127,40 @@ func init() {
 }
 
 func (runner *RootCmdRunner) Run(cmd *cobra.Command, args []string) error {
-  var err error
-
-  err = runner.parseArgs(args)
+  err := runner.prepare(args[0])
 
   if err != nil {
     return err
   }
 
-  err = runner.resolveDirectories()
+  if runner.recursive {
+    return filepath.WalkDir(
+      runner.dirRelative,
+      func(path string, d fs.DirEntry, err error) error {
+        if err != nil {
+          return err
+        }
 
-  if err != nil {
-    return err
+        if !d.IsDir() {
+          return nil
+        }
+
+        err = runner.prepare(path)
+
+        if err != nil {
+          return err
+        }
+
+        return runner.execute()
+      })
   }
 
-  err = runner.fetchData()
-
-  if err != nil {
-    return err
-  }
-
-  runner.generateBreadcrumbs()
-  err = runner.render()
-
-  if err != nil && (
-    errors.Is(err, errTargetIsADirectory) ||
-    errors.Is(err, errTargetExistsAndIsNotGenerated)) {
-
-    fmt.Printf("skipped: %s\n", err)
-    return nil
-  }
-
-  return err
+  return runner.execute()
 }
 
-func (runner *RootCmdRunner) parseArgs(args []string) error {
-  runner.dirRelative = args[0]
-  return nil
-}
+func (runner *RootCmdRunner) prepare(dir string) error {
+  runner.dirRelative = dir
 
-func (runner *RootCmdRunner) resolveDirectories() error {
   var err error
 
   runner.dirAbsolute, err = filepath.Abs(runner.dirRelative)
@@ -186,6 +187,27 @@ func (runner *RootCmdRunner) resolveDirectories() error {
   runner.dirChrooted = filepath.Join("/", runner.dirRelativeToRoot)
   runner.templateData.Name = fmt.Sprintf("Index: %s", runner.dirChrooted)
   runner.templateData.CanGoUp = runner.dirAbsolute != runner.rootAbsolute
+
+  return err
+}
+
+func (runner *RootCmdRunner) execute() error {
+  err := runner.fetchData()
+
+  if err != nil {
+    return err
+  }
+
+  runner.generateBreadcrumbs()
+  err = runner.render()
+
+  if err != nil && (
+    errors.Is(err, errTargetIsADirectory) ||
+    errors.Is(err, errTargetExistsAndIsNotGenerated)) {
+
+    fmt.Printf("skipped: %s\n", err)
+    return nil
+  }
 
   return err
 }
