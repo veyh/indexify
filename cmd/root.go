@@ -185,8 +185,10 @@ func (runner *RootCmdRunner) prepare(dir string) error {
   }
 
   runner.dirChrooted = filepath.Join("/", runner.dirRelativeToRoot)
-  runner.templateData.Name = fmt.Sprintf("Index: %s", runner.dirChrooted)
-  runner.templateData.CanGoUp = runner.dirAbsolute != runner.rootAbsolute
+  runner.templateData = IndexTemplate{
+    Name: fmt.Sprintf("Index: %s", runner.dirChrooted),
+    CanGoUp: runner.dirAbsolute != runner.rootAbsolute,
+  }
 
   return err
 }
